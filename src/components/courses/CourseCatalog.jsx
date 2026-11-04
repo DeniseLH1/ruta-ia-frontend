@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { courseService } from '../../services/courseService';
+import { courseService } from '../../services/courseService.js';
 import { CourseCard } from './CourseCard';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import { LoadingSpinner } from '../common/LoadingSpinner.jsx';
 import { BookOpen, RefreshCw } from 'lucide-react';
 
 export const CourseCatalog = () => {

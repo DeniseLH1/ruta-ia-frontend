@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Clock, Code2 } from 'lucide-react';
-import { Badge } from '../common/Badge';
+import { Badge } from '../common/Badge.jsx';
 
 export const CourseCard = ({ curso }) => {
   return (
