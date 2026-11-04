@@ -33,7 +33,10 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     // Manejo global de errores HTTP 
-    const errorMessage = error.response?.data?.mensaje || error.message || 'Error desconocido en el servidor';
+    const errorMessage = error.response?.data?.message
+      || error.response?.data?.mensaje
+      || error.message
+      || 'Error desconocido en el servidor';
     console.error('API ErrorInterceptor:', errorMessage);
     // Rechazamos la promesa para que el servicio pueda capturar el error si lo necesita
     return Promise.reject({
