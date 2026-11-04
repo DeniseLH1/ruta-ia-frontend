@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles, AlertCircle } from 'lucide-react';
-import { consultationService } from '../../services/consultationService';
+import { consultationService } from '../../services/consultationService.js';
 
 // Gestiona los mensajes con el backend
 export const ConsultationChat = () => {
