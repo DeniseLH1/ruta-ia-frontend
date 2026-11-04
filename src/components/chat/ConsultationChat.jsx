@@ -2,10 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles, AlertCircle, Star } from 'lucide-react';
 import { consultationService } from '../../services/consultationService.js';
-import { studentService } from '../../services/studentService.js';
 
 // Gestiona los mensajes con el backend
-export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
+export const ConsultationChat = ({ usuario, onAbrirRating, consultasCalificadas }) => {
   // Almacena el texto que escribe el usuario en el input
   const [inputMensaje, setInputMensaje] = useState('');
   // Almacena el historial de mensajes
@@ -21,18 +20,6 @@ export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
   const [cargando, setCargando] = useState(false);
   // Almacena posibles errores de la API
   const [error, setError] = useState(null);
-  const [estudiantes, setEstudiantes] = useState([]);
-  const [studentId, setStudentId] = useState('');
-  const [cargandoEstudiantes, setCargandoEstudiantes] = useState(true);
-  const [cargandoRegistro, setCargandoRegistro] = useState(false);
-  const [errorEstudiantes, setErrorEstudiantes] = useState(null);
-  const [mostrarRegistro, setMostrarRegistro] = useState(false);
-  const [nuevoEstudiante, setNuevoEstudiante] = useState({
-    nombreCompleto: '',
-    email: '',
-    nivelExperiencia: 'Principiante',
-    areaInteres: ''
-  });
   // Referencia para hacer scroll hacia el último mensaje 
   const chatEndRef = useRef(null);
   // Para hacer scroll cada vez que cambian los mensajes
@@ -43,67 +30,11 @@ export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
     scrollToBottom();
   }, [mensajes, cargando]);
 
-  useEffect(() => {
-    const cargarEstudiantes = async () => {
-      try {
-        const lista = await studentService.obtenerEstudiantes();
-        setEstudiantes(Array.isArray(lista) ? lista : []);
-        const idGuardado = localStorage.getItem('rutaIA.studentId');
-        const estudianteGuardado = lista.find((estudiante) =>
-          String(estudiante.id || estudiante._id) === idGuardado
-        );
-        if (estudianteGuardado) {
-          setStudentId(idGuardado);
-        } else {
-          localStorage.removeItem('rutaIA.studentId');
-        }
-      } catch (err) {
-        setErrorEstudiantes(err.message || 'No se pudieron cargar los estudiantes.');
-      } finally {
-        setCargandoEstudiantes(false);
-      }
-    };
-
-    cargarEstudiantes();
-  }, []);
-
-  const handleSeleccionarEstudiante = (id) => {
-    setStudentId(id);
-    if (id) {
-      localStorage.setItem('rutaIA.studentId', id);
-    } else {
-      localStorage.removeItem('rutaIA.studentId');
-    }
-  };
-
-  const handleRegistrarEstudiante = async (e) => {
-    e.preventDefault();
-    setErrorEstudiantes(null);
-    setCargandoRegistro(true);
-    try {
-      const estudiante = await studentService.registrarEstudiante(nuevoEstudiante);
-      const id = String(estudiante.id || estudiante._id);
-      setEstudiantes((actuales) => [...actuales, estudiante]);
-      handleSeleccionarEstudiante(id);
-      setMostrarRegistro(false);
-      setNuevoEstudiante({
-        nombreCompleto: '',
-        email: '',
-        nivelExperiencia: 'Principiante',
-        areaInteres: ''
-      });
-    } catch (err) {
-      setErrorEstudiantes(err.message || 'No se pudo registrar el estudiante.');
-    } finally {
-      setCargandoRegistro(false);
-    }
-  };
-
   // Maneja el envío de formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Si el input está vacío o espacios en blanco, no hara nada
-    if (!studentId || !inputMensaje.trim()) return;
+    if (!inputMensaje.trim()) return;
     const textoUsuario = inputMensaje.trim();
     setInputMensaje('');
     setError(null);
@@ -117,7 +48,7 @@ export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
     setCargando(true);
     try {
       // Consumimos el servicio que conecta con el backend
-      const respuestaBackend = await consultationService.enviarConsulta(studentId, textoUsuario);
+      const respuestaBackend = await consultationService.enviarConsulta(textoUsuario);
       // Extrae la respuesta de la IA y los cursos recomendados
       const textoRespuesta = respuestaBackend.respuesta || respuestaBackend.mensaje || 'Respuesta generada con éxito.';
       const cursos = respuestaBackend.fuentes || respuestaBackend.cursosRecomendados || [];
@@ -151,107 +82,12 @@ export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
             <p className="text-xs text-gray-400">Impulsado por Node.js, MongoDB & n8n</p>
           </div>
         </div>
-        <label className="flex items-center gap-2 text-xs text-gray-400">
-          Estudiante
-          <select
-            value={studentId}
-            onChange={(e) => handleSeleccionarEstudiante(e.target.value)}
-            disabled={cargandoEstudiantes}
-            className="max-w-48 bg-gray-900 border border-gray-700 text-white rounded-lg px-2 py-2 disabled:opacity-50"
-          >
-            <option value="">Seleccionar</option>
-            {estudiantes.map((estudiante) => {
-              const id = String(estudiante.id || estudiante._id);
-              return <option key={id} value={id}>{estudiante.nombreCompleto}</option>;
-            })}
-          </select>
-        </label>
+        <div className="text-right">
+          <p className="text-sm text-white">{usuario.nombre}</p>
+          <p className="text-xs text-gray-400">{usuario.email}</p>
+        </div>
       </header>
-      {!studentId ? (
-        <section className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-xl mx-auto mt-8 bg-darkCard border border-gray-800 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white">Identifica al estudiante</h3>
-            <p className="text-sm text-gray-400 mt-2">
-              Para guardar la consulta y personalizar las recomendaciones, selecciona un estudiante registrado o registra uno nuevo.
-            </p>
-            {errorEstudiantes && (
-              <p className="mt-4 text-sm text-red-400" role="alert">{errorEstudiantes}</p>
-            )}
-            {cargandoEstudiantes ? (
-              <p className="mt-5 text-sm text-gray-400">Cargando estudiantes...</p>
-            ) : (
-              <>
-                {estudiantes.length > 0 && (
-                  <label className="block mt-5 text-sm text-gray-300">
-                    Estudiante registrado
-                    <select
-                      value={studentId}
-                      onChange={(e) => handleSeleccionarEstudiante(e.target.value)}
-                      className="mt-2 w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2.5"
-                    >
-                      <option value="">Selecciona tu nombre</option>
-                      {estudiantes.map((estudiante) => {
-                        const id = String(estudiante.id || estudiante._id);
-                        return <option key={id} value={id}>{estudiante.nombreCompleto} ({estudiante.email})</option>;
-                      })}
-                    </select>
-                  </label>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setMostrarRegistro((visible) => !visible)}
-                  className="mt-5 text-sm text-cyan-400 hover:text-cyan-300"
-                >
-                  {mostrarRegistro ? 'Usar un estudiante registrado' : 'Registrar estudiante nuevo'}
-                </button>
-                {mostrarRegistro && (
-                  <form onSubmit={handleRegistrarEstudiante} className="mt-4 space-y-3">
-                    <input
-                      required
-                      value={nuevoEstudiante.nombreCompleto}
-                      onChange={(e) => setNuevoEstudiante({ ...nuevoEstudiante, nombreCompleto: e.target.value })}
-                      placeholder="Nombre completo"
-                      className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2.5"
-                    />
-                    <input
-                      required
-                      type="email"
-                      value={nuevoEstudiante.email}
-                      onChange={(e) => setNuevoEstudiante({ ...nuevoEstudiante, email: e.target.value })}
-                      placeholder="Correo electrónico"
-                      className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2.5"
-                    />
-                    <select
-                      value={nuevoEstudiante.nivelExperiencia}
-                      onChange={(e) => setNuevoEstudiante({ ...nuevoEstudiante, nivelExperiencia: e.target.value })}
-                      className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2.5"
-                    >
-                      <option>Principiante</option>
-                      <option>Intermedio</option>
-                      <option>Avanzado</option>
-                    </select>
-                    <input
-                      required
-                      value={nuevoEstudiante.areaInteres}
-                      onChange={(e) => setNuevoEstudiante({ ...nuevoEstudiante, areaInteres: e.target.value })}
-                      placeholder="Área de interés"
-                      className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2.5"
-                    />
-                    <button
-                      type="submit"
-                      disabled={cargandoRegistro}
-                      className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 disabled:opacity-50 text-white rounded-lg px-4 py-2.5"
-                    >
-                      {cargandoRegistro ? 'Registrando...' : 'Registrar y continuar'}
-                    </button>
-                  </form>
-                )}
-              </>
-            )}
-          </div>
-        </section>
-      ) : (
-        <>
+      <>
       {/* Contenedor principal de mensajes */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <AnimatePresence>
@@ -373,8 +209,7 @@ export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
           </motion.button>
         </form>
       </footer>
-        </>
-      )}
+      </>
     </div>
   );
 };

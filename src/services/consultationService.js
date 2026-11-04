@@ -1,13 +1,14 @@
 // Importamos la instancia centralizada de Axios
 import axiosClient from '../api/axiosClient.js';
+import { fetchApi } from '../api/fetchApi.js';
 
 //Maneja las peticiones de consultas y chat RAG de backend
 export const consultationService = {
   // Envía una nueva consulta del estudiante al backend.
-  enviarConsulta: async (studentId, mensaje) => {
+  enviarConsulta: async (mensaje) => {
     try {
       // Petición POST al endpoint de consultas de tu backend
-      const response = await axiosClient.post('/consultation', { studentId, mensaje });
+      const response = await axiosClient.post('/consultation', { mensaje });
       return response.data;
     } catch (error) {
       throw error;
@@ -26,13 +27,12 @@ export const consultationService = {
       throw error;
     }
   },
-  obtenerHistorialEstudiante: async (studentId) => {
-    try {
-      const response = await axiosClient.get(`/consultation/student/${studentId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
+  obtenerHistorialEstudiante: async () => {
+    return await fetchApi('/consultation/mine');
+  },
+  eliminarConsulta: (id) => fetchApi(`/consultation/${id}`, { method: 'DELETE' }),
+  editarCalificacion: (id, calificacion, comentario) => fetchApi(`/consultation/${id}/rate`, {
+    method: 'PUT',
+    body: { calificacion, comentario }
+  })
 };

@@ -1,5 +1,6 @@
 // Importamos la librería Axios para realizar peticiones HTTP
 import axios from 'axios';
+import { clearSession, getSession } from './session.js';
 
 // Creamos un instancia de axios para reutilizar la configuración en el frontend.
 const axiosClient = axios.create({
@@ -17,6 +18,10 @@ const axiosClient = axios.create({
 // Interceptor de solicitudes
 axiosClient.interceptors.request.use(
   (config) => {
+    const session = getSession();
+    if (session?.token) {
+      config.headers.Authorization = `Bearer ${session.token}`;
+    }
     return config;
   },
   (error) => {
@@ -38,6 +43,10 @@ axiosClient.interceptors.response.use(
       || error.message
       || 'Error desconocido en el servidor';
     console.error('API ErrorInterceptor:', errorMessage);
+    if (error.response?.status === 401) {
+      clearSession();
+      window.dispatchEvent(new Event('rutaIA:session-expired'));
+    }
     // Rechazamos la promesa para que el servicio pueda capturar el error si lo necesita
     return Promise.reject({
       status: error.response?.status,

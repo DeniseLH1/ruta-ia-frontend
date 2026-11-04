@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquarePlus, History, BookOpen, Clock3 } from 'lucide-react';
+import { MessageSquarePlus, History, BookOpen, Clock3, LogOut, ShieldCheck } from 'lucide-react';
 
 // Historial de consultas y acceso rápido de cursos
-export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
+export const Sidebar = ({ usuario, onLogout, onNuevaConsulta, onCambiarVista, vistaActual }) => {
   return (
     <motion.aside 
       // Animación de entrada desde la izquierda usando Framer Motion
@@ -23,16 +23,17 @@ export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
         </div>
       </div>
 
-      {/* Botón: Nueva Consulta */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={onNuevaConsulta}
-        className="w-full flex items-center gap-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-medium py-3 px-4 rounded-xl shadow-md transition-all mb-6"
-      >
-        <MessageSquarePlus className="w-5 h-5" />
-        <span>Nueva Consulta</span>
-      </motion.button>
+      {usuario.role === 'student' && (
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onNuevaConsulta}
+          className="mb-6 flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 px-4 py-3 font-medium text-white shadow-md transition-all hover:from-purple-500 hover:to-cyan-500"
+        >
+          <MessageSquarePlus className="h-5 w-5" />
+          <span>Nueva Consulta</span>
+        </motion.button>
+      )}
 
       {/* Menú de Navegación / Secciones */}
       <div className="flex-1 overflow-y-auto space-y-1 pr-1">
@@ -40,7 +41,20 @@ export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
           Navegación
         </p>
 
-        {/* Opción: Chat RAG */}
+        {usuario.role === 'admin' ? (
+          <button
+            onClick={() => onCambiarVista('admin')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              vistaActual === 'admin'
+                ? 'bg-gray-800 text-accentCyan border-l-4 border-accentCyan'
+                : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            <span>Administración</span>
+          </button>
+        ) : (
+          <>
         <button
           onClick={() => onCambiarVista('chat')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -77,6 +91,8 @@ export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
           <Clock3 className="w-4 h-4" />
           <span>Historial</span>
         </button>
+          </>
+        )}
       </div>
 
       {/* Sección Inferior: Perfil */}
@@ -86,6 +102,20 @@ export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-xs text-gray-300 font-medium">n8n Workflow: Activo</span>
           </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2 px-2">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-white">{usuario.nombre}</p>
+            <p className="text-[10px] uppercase text-gray-500">{usuario.role === 'admin' ? 'Administrador' : 'Estudiante'}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs text-gray-400 hover:bg-gray-800 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </button>
         </div>
       </div>
     </motion.aside>

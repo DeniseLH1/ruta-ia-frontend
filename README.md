@@ -6,14 +6,14 @@ Frontend del proyecto Ruta IA para Campuslands, una interfaz moderna construida 
 
 Esta aplicación permite a los estudiantes:
 
-- Seleccionar o registrar un estudiante.
+- Registrar una cuenta e iniciar sesión como estudiante.
 - Enviar consultas al asistente inteligente.
 - Recibir respuestas generadas por IA con fuentes o cursos sugeridos.
 - Explorar un catálogo de cursos.
 - Consultar el historial de conversaciones.
 - Calificar y comentar las respuestas recibidas.
 
-La interfaz se integra con un backend que expone endpoints para estudiantes y consultas, usando Axios para la comunicación HTTP.
+La interfaz se integra con el backend Express, mantiene Axios para el catálogo y las consultas, y usa Fetch API para autenticación, permisos y acciones administrativas.
 
 ## Tecnologías utilizadas
 
@@ -24,6 +24,7 @@ La interfaz se integra con un backend que expone endpoints para estudiantes y co
 - Framer Motion
 - Lucide React
 - Axios
+- Fetch API para autenticación, permisos e interacciones administrativas
 
 ## Requisitos previos
 
@@ -98,12 +99,16 @@ ruta-ia-frontend/
 │   ├── api/
 │   │   └── axiosClient.js
 │   ├── components/
+│   │   ├── admin/
+│   │   ├── auth/
 │   │   ├── chat/
 │   │   ├── courses/
 │   │   ├── history/
 │   │   ├── layout/
 │   │   └── rating/
 │   ├── services/
+│   │   ├── adminService.js
+│   │   ├── authService.js
 │   │   ├── consultationService.js
 │   │   └── studentService.js
 │   ├── App.jsx
@@ -129,9 +134,8 @@ ruta-ia-frontend/
 
 ### Gestión de estudiantes
 
-- Selección de un estudiante previamente registrado.
-- Registro de nuevos estudiantes desde la UI.
-- Persistencia del ID del estudiante en `localStorage`.
+- Registro e inicio de sesión con correo y contraseña.
+- Persistencia local de la sesión JWT hasta cerrar sesión o expirar el token.
 
 ### Curso y recomendaciones
 
@@ -140,10 +144,16 @@ ruta-ia-frontend/
 - Visualización de fuentes o sugerencias devueltas por la API.
 
 ### Historial y calificación
-
 - Consulta del historial por estudiante.
 - Apertura de modal de calificación por respuesta.
-- Envío de calificación y comentario al backend.
+- Edición de calificaciones y comentarios propios.
+- Eliminación lógica de consultas propias.
+
+### Acceso y administración
+- Inicio de sesión y registro de estudiantes con JWT.
+- Inicio de sesión administrativo configurado en el backend.
+- Panel administrativo con estadísticas y desactivación de cursos.
+- Cierre de sesión y eliminación local del token.
 
 ## Endpoints esperados del backend
 
@@ -151,9 +161,16 @@ La interfaz asume los siguientes endpoints del backend:
 
 - `GET /students`
 - `POST /students`
+- `POST /auth/student/login`
+- `POST /auth/admin/login`
+- `GET /auth/me`
 - `POST /consultation`
-- `GET /consultation/student/:studentId`
+- `GET /consultation/mine`
+- `DELETE /consultation/:id`
 - `POST /consultation/:id/rate`
+- `PUT /consultation/:id/rate`
+- `GET /consultation/stats` (administrador)
+- `GET /courses/admin` y `PATCH /courses/:id/disable` (administrador)
 
 ## Ejemplo de uso
 
@@ -167,4 +184,3 @@ La interfaz asume los siguientes endpoints del backend:
 
 4. Abre la aplicación en el navegador.
 5. Registra o selecciona un estudiante y empieza a consultar.
-

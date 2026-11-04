@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send } from 'lucide-react';
 import { RatingStars } from './RatingStars';
 import { consultationService } from '../../services/consultationService.js';
 
-export const RatingModal = ({ isOpen, onClose, consultaId, onRated }) => {
-  const [calificacion, setCalificacion] = useState(5);
-  const [comentario, setComentario] = useState('');
+export const RatingModal = ({
+  isOpen,
+  onClose,
+  consultaId,
+  calificacionInicial,
+  comentarioInicial,
+  onRated
+}) => {
+  const [calificacion, setCalificacion] = useState(calificacionInicial || 5);
+  const [comentario, setComentario] = useState(comentarioInicial || '');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setCalificacion(calificacionInicial || 5);
+    setComentario(comentarioInicial || '');
+    setError(null);
+  }, [isOpen, consultaId, calificacionInicial, comentarioInicial]);
 
   if (!isOpen) return null;
 
@@ -17,7 +31,11 @@ export const RatingModal = ({ isOpen, onClose, consultaId, onRated }) => {
     setEnviando(true);
     setError(null);
     try {
-      await consultationService.calificarConsulta(consultaId, calificacion, comentario);
+      if (calificacionInicial) {
+        await consultationService.editarCalificacion(consultaId, calificacion, comentario);
+      } else {
+        await consultationService.calificarConsulta(consultaId, calificacion, comentario);
+      }
       onRated?.();
       onClose();
     } catch (err) {
@@ -44,7 +62,9 @@ export const RatingModal = ({ isOpen, onClose, consultaId, onRated }) => {
             <X className="w-5 h-5" />
           </button>
 
-          <h3 className="text-lg font-bold text-white mb-1">Calificar Respuesta</h3>
+          <h3 className="text-lg font-bold text-white mb-1">
+            {calificacionInicial ? 'Editar calificación' : 'Calificar respuesta'}
+          </h3>
           <p className="text-xs text-gray-400 mb-6">
             Tu retroalimentación nos ayuda a mejorar las respuestas del sistema RAG.
           </p>

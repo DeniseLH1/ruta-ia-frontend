@@ -11,11 +11,11 @@ const formatDate = (date) => {
     : parsedDate.toLocaleString();
 };
 
-export const ConsultationHistory = ({ onAbrirRating, consultasCalificadas }) => {
+export const ConsultationHistory = ({ studentId, onAbrirRating, consultasCalificadas }) => {
   const [historial, setHistorial] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  const studentId = localStorage.getItem('rutaIA.studentId');
+  const [eliminandoId, setEliminandoId] = useState('');
 
   const cargarHistorial = useCallback(async () => {
     if (!studentId) {
@@ -27,7 +27,7 @@ export const ConsultationHistory = ({ onAbrirRating, consultasCalificadas }) => 
     setCargando(true);
     setError(null);
     try {
-      const consultas = await consultationService.obtenerHistorialEstudiante(studentId);
+      const consultas = await consultationService.obtenerHistorialEstudiante();
       setHistorial(Array.isArray(consultas) ? consultas : []);
     } catch (err) {
       setError(err.message || 'No se pudo cargar el historial.');
@@ -35,6 +35,20 @@ export const ConsultationHistory = ({ onAbrirRating, consultasCalificadas }) => 
       setCargando(false);
     }
   }, [studentId]);
+
+  const handleEliminar = async (consultaId) => {
+    if (!window.confirm('¿Eliminar esta consulta de tu historial? Se conservará para las estadísticas.')) return;
+    setEliminandoId(String(consultaId));
+    setError(null);
+    try {
+      await consultationService.eliminarConsulta(consultaId);
+      await cargarHistorial();
+    } catch (requestError) {
+      setError(requestError.message || 'No se pudo eliminar la consulta.');
+    } finally {
+      setEliminandoId('');
+    }
+  };
 
   useEffect(() => {
     cargarHistorial();
@@ -63,7 +77,7 @@ export const ConsultationHistory = ({ onAbrirRating, consultasCalificadas }) => 
 
         {!studentId && (
           <p className="rounded-xl border border-gray-800 bg-darkCard p-5 text-sm text-gray-300">
-            Selecciona o registra un estudiante desde Consultas &amp; RAG para consultar su historial.
+            Inicia sesión con tu cuenta de estudiante para consultar tu historial.
           </p>
         )}
         {cargando && <LoadingSpinner texto="Cargando historial..." />}
@@ -78,7 +92,17 @@ export const ConsultationHistory = ({ onAbrirRating, consultasCalificadas }) => 
           <article key={consulta._id || consulta.id} className="rounded-2xl border border-gray-800 bg-darkCard p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-gray-400">{formatDate(consulta.fecha)}</p>
-              <span className="rounded-full bg-gray-900 px-3 py-1 text-xs text-cyan-300">{consulta.estado || 'Sin estado'}</span>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-gray-900 px-3 py-1 text-xs text-cyan-300">{consulta.estado || 'Sin estado'}</span>
+                <button
+                  type="button"
+                  disabled={eliminandoId === String(consulta._id || consulta.id)}
+                  onClick={() => handleEliminar(consulta._id || consulta.id)}
+                  className="rounded-md border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                >
+                  {eliminandoId === String(consulta._id || consulta.id) ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
             </div>
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Pregunta</h3>
@@ -122,7 +146,19 @@ export const ConsultationHistory = ({ onAbrirRating, consultasCalificadas }) => 
               </button>
             )}
             {consulta.calificacion && (
-              <p className="text-xs text-amber-300">Calificación: {consulta.calificacion}/5</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-amber-300">Calificación: {consulta.calificacion}/5</p>
+                  {consulta.comentario && <p className="mt-1 text-sm text-gray-400">{consulta.comentario}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onAbrirRating(consulta._id || consulta.id, consulta)}
+                  className="text-sm text-cyan-300 hover:text-cyan-200"
+                >
+                  Editar mi calificación
+                </button>
+              </div>
             )}
           </article>
         ))}
