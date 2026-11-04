@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Sparkles, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, Sparkles, AlertCircle, Star } from 'lucide-react';
 import { consultationService } from '../../services/consultationService.js';
 import { studentService } from '../../services/studentService.js';
 
 // Gestiona los mensajes con el backend
-export const ConsultationChat = () => {
+export const ConsultationChat = ({ onAbrirRating, consultasCalificadas }) => {
   // Almacena el texto que escribe el usuario en el input
   const [inputMensaje, setInputMensaje] = useState('');
   // Almacena el historial de mensajes
@@ -127,6 +127,7 @@ export const ConsultationChat = () => {
         remitente: 'ia',
         texto: textoRespuesta,
         cursosRecomendados: cursos,
+        estado: respuestaBackend.estado,
         consultaId: respuestaBackend._id || respuestaBackend.id
       };
       setMensajes((prev) => [...prev, nuevoMensajeIA]);
@@ -294,10 +295,29 @@ export const ConsultationChat = () => {
                         <div key={index} className="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800 text-xs">
                           <span className="font-bold text-white">{curso.titulo || curso.nombre}</span>
                           <p className="text-gray-400 mt-0.5 line-clamp-1">{curso.descripcion}</p>
+                          {curso.categoria && <p className="mt-1 text-[10px] text-cyan-300">{curso.categoria}</p>}
+                          {typeof curso.similitud === 'number' && (
+                            <p className="mt-1 text-[10px] text-gray-500">Similitud: {curso.similitud.toFixed(3)}</p>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
+                )}
+                {msg.remitente === 'ia' && msg.estado === 'Respondida' && msg.consultaId && !consultasCalificadas?.has(String(msg.consultaId)) && (
+                  <button
+                    type="button"
+                    onClick={() => onAbrirRating(msg.consultaId)}
+                    className="mt-3 flex items-center gap-1.5 border-t border-gray-800 pt-2 text-xs text-gray-400 hover:text-amber-400"
+                  >
+                    <Star className="w-3.5 h-3.5" />
+                    Calificar respuesta
+                  </button>
+                )}
+                {msg.remitente === 'ia' && consultasCalificadas?.has(String(msg.consultaId)) && (
+                  <p className="mt-3 border-t border-gray-800 pt-2 text-right text-xs text-amber-400">
+                    Respuesta calificada
+                  </p>
                 )}
               </div>
             </motion.div>

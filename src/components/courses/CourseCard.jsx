@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Clock, Code2 } from 'lucide-react';
+import { Clock, Code2 } from 'lucide-react';
 import { Badge } from '../common/Badge.jsx';
 
 export const CourseCard = ({ curso }) => {
@@ -14,15 +14,18 @@ export const CourseCard = ({ curso }) => {
           <Badge color="purple">{curso.nivel || 'General'}</Badge>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <Clock className="w-3.5 h-3.5" />
-            <span>{curso.duracionHoras ? `${curso.duracionHoras}h` : 'N/A'}</span>
+            <span>{curso.duracionHoras || curso.duración ? `${curso.duracionHoras || curso.duración}h` : 'N/A'}</span>
           </div>
         </div>
 
-        <h3 className="font-bold text-white text-base mb-2 line-clamp-1">{curso.titulo}</h3>
+        <h3 className="font-bold text-white text-base mb-2 line-clamp-1">{curso.nombre || curso.titulo}</h3>
         <p className="text-gray-400 text-xs leading-relaxed mb-4 line-clamp-3">{curso.descripcion}</p>
       </div>
 
       <div>
+        {curso.categoria && (
+          <p className="text-xs text-accentCyan mb-2">{curso.categoria}</p>
+        )}
         {curso.tecnologias && curso.tecnologias.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-3 border-t border-gray-800">
             {curso.tecnologias.map((tech, idx) => (

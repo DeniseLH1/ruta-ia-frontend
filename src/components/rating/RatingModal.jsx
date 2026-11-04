@@ -4,21 +4,25 @@ import { X, Send } from 'lucide-react';
 import { RatingStars } from './RatingStars';
 import { consultationService } from '../../services/consultationService.js';
 
-export const RatingModal = ({ isOpen, onClose, consultaId }) => {
+export const RatingModal = ({ isOpen, onClose, consultaId, onRated }) => {
   const [calificacion, setCalificacion] = useState(5);
   const [comentario, setComentario] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setEnviando(true);
+    setError(null);
     try {
       await consultationService.calificarConsulta(consultaId, calificacion, comentario);
+      onRated?.();
       onClose();
     } catch (err) {
       console.error('Error al calificar:', err);
+      setError(err.message || 'No se pudo guardar la calificación.');
     } finally {
       setEnviando(false);
     }
@@ -46,6 +50,7 @@ export const RatingModal = ({ isOpen, onClose, consultaId }) => {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
             <div className="flex flex-col items-center gap-2 py-2">
               <RatingStars valorInicial={calificacion} onChange={setCalificacion} />
               <span className="text-xs text-amber-400 font-medium">

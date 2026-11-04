@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquarePlus, History, BookOpen, Settings, LogOut } from 'lucide-react';
+import { MessageSquarePlus, History, BookOpen, Clock3 } from 'lucide-react';
 
 // Historial de consultas y acceso rápido de cursos
 export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
@@ -64,6 +64,18 @@ export const Sidebar = ({ onNuevaConsulta, onCambiarVista, vistaActual }) => {
         >
           <BookOpen className="w-4 h-4" />
           <span>Cursos</span>
+        </button>
+
+        <button
+          onClick={() => onCambiarVista('history')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            vistaActual === 'history'
+              ? 'bg-gray-800 text-accentCyan border-l-4 border-accentCyan'
+              : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+          }`}
+        >
+          <Clock3 className="w-4 h-4" />
+          <span>Historial</span>
         </button>
       </div>
 

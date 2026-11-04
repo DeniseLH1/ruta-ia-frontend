@@ -25,6 +25,14 @@ export const consultationService = {
     } catch (error) {
       throw error;
     }
+  },
+  obtenerHistorialEstudiante: async (studentId) => {
+    try {
+      const response = await axiosClient.get(`/consultation/student/${studentId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
 };
