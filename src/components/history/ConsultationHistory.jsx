@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Clock3, RefreshCw } from 'lucide-react';
 import { consultationService } from '../../services/consultationService.js';
+import { ConfirmDialog } from '../common/ConfirmDialog.jsx';
 import { LoadingSpinner } from '../common/LoadingSpinner.jsx';
 
 const formatDate = (date) => {
@@ -16,6 +17,7 @@ export const ConsultationHistory = ({ studentId, onAbrirRating, consultasCalific
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [eliminandoId, setEliminandoId] = useState('');
+  const [consultaPorEliminar, setConsultaPorEliminar] = useState(null);
 
   const cargarHistorial = useCallback(async () => {
     if (!studentId) {
@@ -36,8 +38,9 @@ export const ConsultationHistory = ({ studentId, onAbrirRating, consultasCalific
     }
   }, [studentId]);
 
-  const handleEliminar = async (consultaId) => {
-    if (!window.confirm('¿Eliminar esta consulta de tu historial? Se conservará para las estadísticas.')) return;
+  const handleEliminar = async () => {
+    if (!consultaPorEliminar) return;
+    const consultaId = consultaPorEliminar;
     setEliminandoId(String(consultaId));
     setError(null);
     try {
@@ -47,6 +50,7 @@ export const ConsultationHistory = ({ studentId, onAbrirRating, consultasCalific
       setError(requestError.message || 'No se pudo eliminar la consulta.');
     } finally {
       setEliminandoId('');
+      setConsultaPorEliminar(null);
     }
   };
 
@@ -97,7 +101,7 @@ export const ConsultationHistory = ({ studentId, onAbrirRating, consultasCalific
                 <button
                   type="button"
                   disabled={eliminandoId === String(consulta._id || consulta.id)}
-                  onClick={() => handleEliminar(consulta._id || consulta.id)}
+                  onClick={() => setConsultaPorEliminar(consulta._id || consulta.id)}
                   className="rounded-md border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                 >
                   {eliminandoId === String(consulta._id || consulta.id) ? 'Eliminando...' : 'Eliminar'}
@@ -163,6 +167,16 @@ export const ConsultationHistory = ({ studentId, onAbrirRating, consultasCalific
           </article>
         ))}
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(consultaPorEliminar)}
+        title="¿Quitar consulta del historial?"
+        message="La consulta dejará de aparecer en tu historial personal, pero se conservará para las estadísticas de la plataforma."
+        confirmLabel="Sí, quitar"
+        variant="danger"
+        loading={Boolean(eliminandoId)}
+        onConfirm={handleEliminar}
+        onCancel={() => setConsultaPorEliminar(null)}
+      />
     </section>
   );
 };

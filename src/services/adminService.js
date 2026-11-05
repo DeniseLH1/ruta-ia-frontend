@@ -5,5 +5,9 @@ export const adminService = {
   obtenerEstadisticas: () => fetchApi('/consultation/stats'),
   obtenerEstudiantes: () => fetchApi('/students'),
   obtenerCursos: () => fetchApi('/courses/admin'),
-  desactivarCurso: (id) => fetchApi(`/courses/${id}/disable`, { method: 'PATCH' })
+  obtenerHistorial: () => fetchApi('/consultation'),
+  crearCurso: (datosCurso) => fetchApi('/courses', { method: 'POST', body: datosCurso }),
+  actualizarCurso: (id, datosCurso) => fetchApi(`/courses/${id}`, { method: 'PUT', body: datosCurso }),
+  desactivarCurso: (id) => fetchApi(`/courses/${id}/disable`, { method: 'PATCH' }),
+  reactivarCurso: (id) => fetchApi(`/courses/${id}/enable`, { method: 'PATCH' })
 };

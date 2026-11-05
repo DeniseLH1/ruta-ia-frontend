@@ -122,7 +122,9 @@ function App() {
           consultasCalificadas={consultasCalificadas}
         />
       )}
-      {session.user.role === 'admin' && vistaActual === 'admin' && <AdminDashboard />}
+      {session.user.role === 'admin' && (
+        <AdminDashboard vistaActual={vistaActual} onCambiarVista={setVistaActual} />
+      )}
 
       {/* Modal global para calificar una consulta específica. */}
       <RatingModal
