@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  Trash2,
   UsersRound,
   X
 } from 'lucide-react';
@@ -68,15 +69,19 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
   const [historial, setHistorial] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [cursoActualizando, setCursoActualizando] = useState('');
+  const [sincronizandoCursos, setSincronizandoCursos] = useState(false);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
   const [cursoConfirmacion, setCursoConfirmacion] = useState(null);
+  const [cursoPorEliminar, setCursoPorEliminar] = useState(null);
+  const [confirmarSincronizacion, setConfirmarSincronizacion] = useState(false);
   const [modalCursoAbierto, setModalCursoAbierto] = useState(false);
   const [cursoEditando, setCursoEditando] = useState(null);
   const [formCurso, setFormCurso] = useState(initialCourseForm);
   const [filtroEstudiante, setFiltroEstudiante] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [busquedaHistorial, setBusquedaHistorial] = useState('');
+  const [busquedaEstudiantes, setBusquedaEstudiantes] = useState('');
 
   const cargarPanel = useCallback(async () => {
     setCargando(true);
@@ -123,6 +128,31 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
       return coincideEstudiante && coincideEstado && coincideBusqueda;
     });
   }, [busquedaHistorial, estudiantes, filtroEstado, filtroEstudiante, historial]);
+
+  const estudiantesFiltrados = useMemo(() => {
+    const termino = busquedaEstudiantes.trim().toLocaleLowerCase();
+    return estudiantes.filter((student) => (
+      `${student.nombreCompleto || ''} ${student.email || ''} ${student.areaInteres || ''} ${student.nivelExperiencia || ''}`
+        .toLocaleLowerCase()
+        .includes(termino)
+    ));
+  }, [busquedaEstudiantes, estudiantes]);
+
+  // Resume consultas y valoraciones para cada estudiante.
+  const metricasEstudiantes = useMemo(() => {
+    const metricas = new Map();
+    historial.forEach((consulta) => {
+      const studentId = String(consulta.studentId?._id || consulta.studentId || '');
+      const actual = metricas.get(studentId) || { consultas: 0, calificaciones: 0, sumaCalificaciones: 0 };
+      actual.consultas += 1;
+      if (Number.isFinite(consulta.calificacion)) {
+        actual.calificaciones += 1;
+        actual.sumaCalificaciones += consulta.calificacion;
+      }
+      metricas.set(studentId, actual);
+    });
+    return metricas;
+  }, [historial]);
 
   const abrirFormularioCurso = (curso = null) => {
     setError('');
@@ -172,7 +202,7 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
       if (reactivar) await adminService.reactivarCurso(id);
       else await adminService.desactivarCurso(id);
       if (reactivar) {
-        setAviso('Curso reactivado en el catálogo. Para incluirlo nuevamente en las recomendaciones, ejecuta el workflow Indexación_cursos.');
+        setAviso('Curso reactivado y enviado al flujo de indexación.');
       }
       await cargarPanel();
     } catch (requestError) {
@@ -183,6 +213,46 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
     }
   };
 
+  const confirmarEliminarCurso = async () => {
+    if (!cursoPorEliminar) return;
+    const id = String(cursoPorEliminar._id || cursoPorEliminar.id);
+    setCursoActualizando(id);
+    setError('');
+    setAviso('');
+    try {
+      await adminService.eliminarCurso(id);
+      setAviso('Curso eliminado del catálogo y del índice de recomendaciones.');
+      await cargarPanel();
+    } catch (requestError) {
+      setError(requestError.message || 'No se pudo eliminar el curso.');
+    } finally {
+      setCursoActualizando('');
+      setCursoPorEliminar(null);
+    }
+  };
+
+  const handleSincronizarCursos = async () => {
+    setSincronizandoCursos(true);
+    setError('');
+    setAviso('');
+    try {
+      const resultado = await adminService.sincronizarCursos();
+      setAviso(`Índice actualizado: ${resultado.indexed} cursos activos indexados y ${resultado.removed} vectores anteriores retirados.`);
+    } catch (requestError) {
+      setError(requestError.message || 'No se pudieron sincronizar los cursos con Qdrant.');
+    } finally {
+      setSincronizandoCursos(false);
+      setConfirmarSincronizacion(false);
+    }
+  };
+
+  const verHistorialEstudiante = (student) => {
+    setFiltroEstudiante(String(student._id || student.id));
+    setFiltroEstado('');
+    setBusquedaHistorial('');
+    onCambiarVista('admin-history');
+  };
+
   const consultasPendientes = historial.filter((consulta) => consulta.estado === 'Pendiente').length;
   const totalConsultas = Number(estadisticas?.totalConsultas) || 0;
   const activeCourses = cursos.filter((course) => course.estado === 'activo');
@@ -190,6 +260,7 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
     admin: ['Resumen general', 'Una mirada rápida al movimiento de tu plataforma.'],
     'admin-stats': ['Estadísticas', 'Indicadores para entender el uso y la actividad de Ruta IA.'],
     'admin-courses': ['Gestión de cursos', 'Administra el catálogo y mantén la oferta al día.'],
+    'admin-students': ['Estudiantes', 'Consulta el registro, la actividad y las calificaciones de cada estudiante.'],
     'admin-history': ['Historial de consultas', 'Explora las consultas realizadas por tus estudiantes.']
   };
   const [pageTitle, pageDescription] = pageDetails[vistaActual] || pageDetails.admin;
@@ -379,7 +450,8 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
                       <div className="space-y-3">
                         {[
                           ['admin-courses', BookOpen, 'Gestionar cursos', `${cursos.length} cursos en catálogo`, 'text-cyan-200', 'bg-cyan-300/[0.08]'],
-                          ['admin-history', Clock3, 'Consultar historial', `${historial.length} consultas registradas`, 'text-violet-200', 'bg-violet-300/[0.08]'],
+                          ['admin-students', UsersRound, 'Ver estudiantes', `${estudiantes.length} estudiantes registrados`, 'text-violet-200', 'bg-violet-300/[0.08]'],
+                          ['admin-history', Clock3, 'Consultar historial', `${historial.length} consultas registradas`, 'text-cyan-200', 'bg-cyan-300/[0.08]'],
                           ['admin-stats', BarChart3, 'Ver estadísticas', 'Indicadores y valoraciones', 'text-amber-200', 'bg-amber-300/[0.08]']
                         ].map(([view, Icon, title, description, color, iconBg]) => (
                           <button
@@ -513,6 +585,82 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
                 </>
               )}
 
+              {vistaActual === 'admin-students' && (
+                <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#101725]">
+                  <header className="flex flex-wrap items-center gap-3 border-b border-white/[0.06] p-5 sm:p-6">
+                    <span className="rounded-xl bg-violet-300/[0.08] p-2.5 text-violet-200"><UsersRound className="h-5 w-5" /></span>
+                    <div>
+                      <h2 className="font-semibold text-white">Estudiantes registrados</h2>
+                      <p className="mt-1 text-xs text-slate-500">{estudiantesFiltrados.length} de {estudiantes.length} estudiantes</p>
+                    </div>
+                  </header>
+                  <label className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-4 text-slate-500 sm:px-6">
+                    <Search className="h-4 w-4" />
+                    <input
+                      type="search"
+                      value={busquedaEstudiantes}
+                      onChange={(event) => setBusquedaEstudiantes(event.target.value)}
+                      placeholder="Buscar por nombre, correo, interés o nivel"
+                      aria-label="Buscar estudiantes"
+                      className="w-full bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-600"
+                    />
+                  </label>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[850px] text-left text-sm">
+                      <thead className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-slate-500">
+                        <tr>
+                          <th className="px-5 py-4 font-medium">Estudiante</th>
+                          <th className="px-5 py-4 font-medium">Interés / nivel</th>
+                          <th className="px-5 py-4 font-medium">Consultas</th>
+                          <th className="px-5 py-4 font-medium">Calificaciones</th>
+                          <th className="px-5 py-4 font-medium">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {estudiantesFiltrados.map((student) => {
+                          const id = String(student._id || student.id);
+                          const metricas = metricasEstudiantes.get(id) || { consultas: 0, calificaciones: 0, sumaCalificaciones: 0 };
+                          const promedio = metricas.calificaciones
+                            ? (metricas.sumaCalificaciones / metricas.calificaciones).toFixed(1)
+                            : '—';
+                          return (
+                            <tr key={id} className="border-t border-white/[0.05] text-slate-300 hover:bg-white/[0.02]">
+                              <td className="px-5 py-4">
+                                <p className="font-medium text-slate-100">{student.nombreCompleto}</p>
+                                <p className="mt-1 text-xs text-slate-500">{student.email}</p>
+                              </td>
+                              <td className="px-5 py-4">
+                                <p className="text-slate-300">{student.areaInteres || 'Sin área indicada'}</p>
+                                <p className="mt-1 text-xs text-slate-500">{student.nivelExperiencia || 'Sin nivel indicado'}</p>
+                              </td>
+                              <td className="px-5 py-4">{metricas.consultas}</td>
+                              <td className="px-5 py-4">
+                                <span className="text-amber-200">{metricas.calificaciones} valoraciones</span>
+                                <span className="ml-2 text-xs text-slate-500">Promedio {promedio}/5</span>
+                              </td>
+                              <td className="px-5 py-4">
+                                <button
+                                  type="button"
+                                  onClick={() => verHistorialEstudiante(student)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/15 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-300/[0.07]"
+                                >
+                                  <Clock3 className="h-3.5 w-3.5" /> Ver historial
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {estudiantesFiltrados.length === 0 && (
+                          <tr><td colSpan="5" className="px-5 py-12 text-center text-slate-500">
+                            {estudiantes.length ? 'No encontramos estudiantes con esa búsqueda.' : 'Aún no hay estudiantes registrados.'}
+                          </td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
               {vistaActual === 'admin-courses' && (
                 <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#101725]">
                   <header className="flex flex-wrap items-center gap-3 border-b border-white/[0.06] p-5 sm:p-6">
@@ -523,14 +671,23 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
                     </div>
                     <button
                       type="button"
+                      onClick={() => setConfirmarSincronizacion(true)}
+                      disabled={sincronizandoCursos || Boolean(cursoActualizando)}
+                      className="ml-auto flex items-center gap-2 rounded-xl border border-cyan-300/15 px-4 py-2.5 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/[0.06] disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${sincronizandoCursos ? 'animate-spin' : ''}`} />
+                      {sincronizandoCursos ? 'Sincronizando...' : 'Sincronizar Qdrant'}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => abrirFormularioCurso()}
-                      className="ml-auto flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-950/20 transition hover:brightness-110"
+                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-950/20 transition hover:brightness-110"
                     >
                       <Plus className="h-4 w-4" /> Crear curso
                     </button>
                   </header>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[740px] text-left text-sm">
+                    <table className="w-full min-w-[880px] text-left text-sm">
                       <thead className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-slate-500">
                         <tr>
                           <th className="px-6 py-4 font-medium">Curso</th>
@@ -578,6 +735,15 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
                                     }`}
                                   >
                                     {actualizando ? 'Guardando...' : activo ? 'Desactivar' : 'Reactivar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={actualizando}
+                                    onClick={() => setCursoPorEliminar(curso)}
+                                    aria-label={`Eliminar ${curso.nombre}`}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300/10 px-2.5 py-1.5 text-xs text-rose-200/80 transition hover:bg-rose-300/[0.06] disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" /> Eliminar
                                   </button>
                                 </div>
                               </td>
@@ -663,7 +829,14 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
                               <td className="px-5 py-4">
                                 <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-xs text-slate-300">{consulta.estado || 'Sin estado'}</span>
                               </td>
-                              <td className="px-5 py-4 text-amber-200">{consulta.calificacion ? `${consulta.calificacion}/5` : '—'}</td>
+                              <td className="px-5 py-4 text-amber-200">
+                                {consulta.calificacion ? (
+                                  <>
+                                    <p>{consulta.calificacion}/5</p>
+                                    {consulta.comentario && <p className="mt-1 max-w-xs whitespace-pre-wrap text-xs text-slate-400">{consulta.comentario}</p>}
+                                  </>
+                                ) : '—'}
+                              </td>
                             </tr>
                           );
                         })}
@@ -803,6 +976,25 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
         loading={Boolean(cursoConfirmacion && cursoActualizando)}
         onConfirm={confirmarCambioCurso}
         onCancel={() => setCursoConfirmacion(null)}
+      />
+      <ConfirmDialog
+        isOpen={Boolean(cursoPorEliminar)}
+        title="Eliminar curso definitivamente"
+        message={`¿Eliminar “${cursoPorEliminar?.nombre}” del catálogo? También se solicitará retirar su vector del índice y esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar curso"
+        variant="danger"
+        loading={Boolean(cursoPorEliminar && cursoActualizando)}
+        onConfirm={confirmarEliminarCurso}
+        onCancel={() => setCursoPorEliminar(null)}
+      />
+      <ConfirmDialog
+        isOpen={confirmarSincronizacion}
+        title="Reconstruir índice de cursos"
+        message="Se retirarán todos los vectores actuales de cursos_ia y se volverán a crear con los cursos activos de MongoDB. Confirma que el workflow Indexacion_Cursos actualizado ya está importado y activo."
+        confirmLabel="Reconstruir índice"
+        loading={sincronizandoCursos}
+        onConfirm={handleSincronizarCursos}
+        onCancel={() => setConfirmarSincronizacion(false)}
       />
     </section>
   );

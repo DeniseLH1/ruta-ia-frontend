@@ -8,7 +8,7 @@ export const consultationService = {
   enviarConsulta: async (mensaje) => {
     try {
       // Petición POST al endpoint de consultas de tu backend
-      const response = await axiosClient.post('/consultation', { mensaje });
+      const response = await axiosClient.post('/consultation', { mensaje }, { timeout: 65000 });
       return response.data;
     } catch (error) {
       throw error;

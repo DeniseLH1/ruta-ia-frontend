@@ -8,13 +8,15 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquarePlus,
-  ShieldCheck
+  ShieldCheck,
+  UsersRound
 } from 'lucide-react';
 
 const adminNavigation = [
   { id: 'admin', label: 'Inicio', icon: LayoutDashboard },
   { id: 'admin-stats', label: 'Estadísticas', icon: ChartNoAxesCombined },
   { id: 'admin-courses', label: 'Gestión de cursos', icon: BookOpen },
+  { id: 'admin-students', label: 'Estudiantes', icon: UsersRound },
   { id: 'admin-history', label: 'Historial de consultas', icon: Clock3 }
 ];
 
