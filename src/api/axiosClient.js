@@ -38,8 +38,12 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     // Manejo global de errores HTTP 
+    const isNetworkError = !error.response && Boolean(error.request);
     const errorMessage = error.response?.data?.message
       || error.response?.data?.mensaje
+      || (isNetworkError
+        ? `No se pudo conectar con ${axiosClient.defaults.baseURL}. Verifica que el backend esté activo y que CORS_ORIGINS permita el origen del frontend.`
+        : null)
       || error.message
       || 'Error desconocido en el servidor';
     console.error('API ErrorInterceptor:', errorMessage);
