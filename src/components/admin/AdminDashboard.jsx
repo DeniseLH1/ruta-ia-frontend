@@ -237,7 +237,7 @@ export const AdminDashboard = ({ vistaActual = 'admin', onCambiarVista = () => {
     setAviso('');
     try {
       const resultado = await adminService.sincronizarCursos();
-      setAviso(`Índice actualizado: ${resultado.indexed} cursos activos indexados y ${resultado.removed} vectores anteriores retirados.`);
+      setAviso(`Índice actualizado: ${resultado.indexed} cursos activos sincronizados.`);
     } catch (requestError) {
       setError(requestError.message || 'No se pudieron sincronizar los cursos con Qdrant.');
     } finally {

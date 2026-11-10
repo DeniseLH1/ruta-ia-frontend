@@ -10,11 +10,20 @@ export async function fetchApi(path, options = {}) {
   if (options.body !== undefined) headers.set('Content-Type', 'application/json');
   if (session?.token) headers.set('Authorization', `Bearer ${session.token}`);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body)
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body)
+    });
+  } catch (error) {
+    const connectionError = new Error(
+      `No se pudo conectar con el backend en ${API_BASE_URL}. Verifica que esté activo y que CORS_ORIGINS incluya el origen del frontend.`
+    );
+    connectionError.cause = error;
+    throw connectionError;
+  }
 
   let payload;
   try {
